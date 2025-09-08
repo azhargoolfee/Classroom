@@ -197,7 +197,6 @@
       })
 
       // Add click handler for sparkline to show history
-      const canvas = node.querySelector('canvas.sparkline')
       canvas.addEventListener('click', () => showHistoryModal(s))
 
       studentsList.appendChild(node)
@@ -217,7 +216,7 @@
       name: exists ? `${name} ${Math.floor(Math.random() * 90) + 10}` : name,
       points: 0,
       rewards: 0,
-      history: [{ t: Date.now(), points: 0 }],
+      history: [{ t: Date.now(), points: 0, reason: 'Student created' }],
     }
     students.push(student)
     await saveStudents(students)
