@@ -136,13 +136,16 @@
       console.error('History modal elements not found')
       return
     }
+    console.log('Showing history for student:', student)
     historyList.innerHTML = ''
     const history = student.history || []
+    console.log('Student history:', history)
     
     if (history.length === 0) {
       historyList.innerHTML = '<p style="text-align: center; color: var(--muted);">No history yet</p>'
     } else {
       history.forEach((entry, index) => {
+        console.log('History entry:', entry)
         const item = document.createElement('div')
         item.className = 'history-item'
         
@@ -216,7 +219,10 @@
       })
 
       // Add click handler for sparkline to show history
-      canvas.addEventListener('click', () => showHistoryModal(s))
+      canvas.addEventListener('click', () => {
+        console.log('Canvas clicked for student:', s)
+        showHistoryModal(s)
+      })
 
       studentsList.appendChild(node)
     }
