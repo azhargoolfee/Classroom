@@ -123,7 +123,7 @@ app.delete('/api/students/:id', auth, (req, res) => {
 })
 
 app.post('/api/students/:id/adjust', auth, (req, res) => {
-  const REWARD_THRESHOLD = 1000
+  const REWARD_THRESHOLD = 10
   const uid = req.user.uid
   const id = Number(req.params.id)
   const { delta, reason } = req.body || {}

@@ -5,7 +5,7 @@
 ;(function () {
   const API_BASE = ''
   const STORAGE_KEY = 'khadis-classroom:v1:students'
-  const REWARD_THRESHOLD = 1000
+  const REWARD_THRESHOLD = 10
 
   /** @type {HTMLDivElement} */ const studentsList = document.getElementById('studentsList')
   /** @type {HTMLFormElement} */ const addStudentForm = document.getElementById('addStudentForm')

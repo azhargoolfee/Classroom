@@ -61,6 +61,6 @@ docker run -it --rm -p 3000:3000 -e JWT_SECRET=change-me -e DB_PATH=/data/khadi.
 - `POST /api/students/:id/adjust` – `{ delta }` add/subtract points (auth)
 - `DELETE /api/students/:id` – remove student (auth)
 
-Reward threshold is 1000 points; crossing it increments the `rewards` counter and progress wraps modulo 1000.
+Reward threshold is 10 points; crossing it increments the `rewards` counter and progress wraps modulo 10.
 
 
