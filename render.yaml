@@ -11,11 +11,9 @@ services:
         value: 3000
       - key: JWT_SECRET
         generateValue: true
+      # On the free plan, disks are not supported. Using local file means data
+      # can be lost on redeploy. Upgrade plan or use a managed DB for persistence.
       - key: DB_PATH
-        value: /var/data/khadi.db
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 1
+        value: ./khadi.db
 
 
