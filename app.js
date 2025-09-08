@@ -118,6 +118,7 @@
       console.error('Reason modal elements not found')
       return
     }
+    console.log('Showing reason modal for student:', studentId, 'delta:', delta)
     pendingAdjustment = { studentId, delta }
     reasonInput.value = ''
     reasonModal.classList.remove('hidden')
@@ -243,20 +244,30 @@
   }
 
   async function adjustPoints(studentId, delta, reason = 'Point adjustment') {
+    console.log('adjustPoints called:', { studentId, delta, reason, isAuthed: isAuthed() })
     if (isAuthed()) {
-      const updated = await api(`/api/students/${studentId}/adjust`, { method: 'POST', body: JSON.stringify({ delta, reason }) })
-      if (updated && updated.rewards) {
-        const beforePct = (updated.points - delta) % REWARD_THRESHOLD
-        const afterPct = updated.points % REWARD_THRESHOLD
-        if (afterPct < beforePct && delta > 0) {
-          showRewardModal(updated)
+      try {
+        const updated = await api(`/api/students/${studentId}/adjust`, { method: 'POST', body: JSON.stringify({ delta, reason }) })
+        console.log('API response:', updated)
+        if (updated && updated.rewards) {
+          const beforePct = (updated.points - delta) % REWARD_THRESHOLD
+          const afterPct = updated.points % REWARD_THRESHOLD
+          if (afterPct < beforePct && delta > 0) {
+            showRewardModal(updated)
+          }
         }
+        return render()
+      } catch (error) {
+        console.error('API call failed:', error)
+        throw error
       }
-      return render()
     }
     const students = await loadStudents()
     const idx = students.findIndex((s) => s.id === studentId)
-    if (idx === -1) return
+    if (idx === -1) {
+      console.error('Student not found:', studentId)
+      return
+    }
     const s = students[idx]
 
     const before = s.points
@@ -277,6 +288,7 @@
     s.history = (s.history || []).concat({ t: Date.now(), points: s.points % REWARD_THRESHOLD, reason })
     students[idx] = s
     await saveStudents(students)
+    console.log('Local adjustment completed:', s)
     render()
   }
 
@@ -347,10 +359,20 @@
 
   if (reasonConfirm) {
     reasonConfirm.addEventListener('click', async () => {
-      if (!pendingAdjustment) return
+      if (!pendingAdjustment) {
+        console.error('No pending adjustment')
+        return
+      }
       const reason = reasonInput.value.trim() || 'Point adjustment'
+      console.log('Confirming adjustment:', pendingAdjustment, 'reason:', reason)
       hideReasonModal()
-      await adjustPoints(pendingAdjustment.studentId, pendingAdjustment.delta, reason)
+      try {
+        await adjustPoints(pendingAdjustment.studentId, pendingAdjustment.delta, reason)
+        console.log('Adjustment completed')
+      } catch (error) {
+        console.error('Adjustment failed:', error)
+        showToast('Failed to adjust points')
+      }
     })
   }
 
