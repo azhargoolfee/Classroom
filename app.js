@@ -34,6 +34,14 @@
   const historyList = document.getElementById('historyList')
   const closeHistoryModal = document.getElementById('closeHistoryModal')
 
+  // Check if all required elements exist
+  if (!reasonModal || !reasonInput || !reasonCancel || !reasonConfirm || !closeReasonModal) {
+    console.error('Missing reason modal elements')
+  }
+  if (!historyModal || !historyList || !closeHistoryModal) {
+    console.error('Missing history modal elements')
+  }
+
   let pendingAdjustment = null
 
   const uid = () => Math.random().toString(36).slice(2, 10)
@@ -106,6 +114,10 @@
   }
 
   function showReasonModal(studentId, delta) {
+    if (!reasonModal || !reasonInput) {
+      console.error('Reason modal elements not found')
+      return
+    }
     pendingAdjustment = { studentId, delta }
     reasonInput.value = ''
     reasonModal.classList.remove('hidden')
@@ -113,11 +125,16 @@
   }
 
   function hideReasonModal() {
+    if (!reasonModal) return
     reasonModal.classList.add('hidden')
     pendingAdjustment = null
   }
 
   function showHistoryModal(student) {
+    if (!historyModal || !historyList) {
+      console.error('History modal elements not found')
+      return
+    }
     historyList.innerHTML = ''
     const history = student.history || []
     
@@ -150,6 +167,7 @@
   }
 
   function hideHistoryModal() {
+    if (!historyModal) return
     historyModal.classList.add('hidden')
   }
 
@@ -327,29 +345,37 @@
     if (e.target === rewardModal) hideRewardModal()
   })
 
-  reasonConfirm.addEventListener('click', async () => {
-    if (!pendingAdjustment) return
-    const reason = reasonInput.value.trim() || 'Point adjustment'
-    hideReasonModal()
-    await adjustPoints(pendingAdjustment.studentId, pendingAdjustment.delta, reason)
-  })
+  if (reasonConfirm) {
+    reasonConfirm.addEventListener('click', async () => {
+      if (!pendingAdjustment) return
+      const reason = reasonInput.value.trim() || 'Point adjustment'
+      hideReasonModal()
+      await adjustPoints(pendingAdjustment.studentId, pendingAdjustment.delta, reason)
+    })
+  }
 
-  reasonCancel.addEventListener('click', hideReasonModal)
-  closeReasonModal.addEventListener('click', hideReasonModal)
-  reasonModal.addEventListener('click', (e) => {
-    if (e.target === reasonModal) hideReasonModal()
-  })
+  if (reasonCancel) reasonCancel.addEventListener('click', hideReasonModal)
+  if (closeReasonModal) closeReasonModal.addEventListener('click', hideReasonModal)
+  if (reasonModal) {
+    reasonModal.addEventListener('click', (e) => {
+      if (e.target === reasonModal) hideReasonModal()
+    })
+  }
 
-  reasonInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      reasonConfirm.click()
-    }
-  })
+  if (reasonInput) {
+    reasonInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        reasonConfirm?.click()
+      }
+    })
+  }
 
-  closeHistoryModal.addEventListener('click', hideHistoryModal)
-  historyModal.addEventListener('click', (e) => {
-    if (e.target === historyModal) hideHistoryModal()
-  })
+  if (closeHistoryModal) closeHistoryModal.addEventListener('click', hideHistoryModal)
+  if (historyModal) {
+    historyModal.addEventListener('click', (e) => {
+      if (e.target === historyModal) hideHistoryModal()
+    })
+  }
 
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
