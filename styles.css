@@ -89,6 +89,7 @@ body {
   border-radius: 16px;
   padding: 14px;
   box-shadow: 0 10px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.04);
+  position: relative;
 }
 
 .card-top { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center; }
@@ -121,6 +122,24 @@ body {
 .progress-text { margin-top: 6px; color: var(--muted); font-size: 12px; }
 
 .sparkline { width: 100%; background: rgba(255,255,255,.02); border-radius: 10px; margin-top: 10px; }
+
+.remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1;
+}
+.remove-btn:hover { background: rgba(255,93,108,.2); border-color: rgba(255,93,108,.5); }
 
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
