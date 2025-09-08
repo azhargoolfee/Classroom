@@ -371,9 +371,14 @@
       }
       const reason = reasonInput.value.trim() || 'Point adjustment'
       console.log('Confirming adjustment:', pendingAdjustment, 'reason:', reason)
+      
+      // Store the adjustment data before hiding the modal
+      const adjustmentData = { ...pendingAdjustment }
+      
       hideReasonModal()
+      
       try {
-        await adjustPoints(pendingAdjustment.studentId, pendingAdjustment.delta, reason)
+        await adjustPoints(adjustmentData.studentId, adjustmentData.delta, reason)
         console.log('Adjustment completed')
       } catch (error) {
         console.error('Adjustment failed:', error)
