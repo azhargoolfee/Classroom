@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login • Khadi's Classroom</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .login-wrap { max-width: 420px; margin: 80px auto; background: rgba(21,24,58,.7); border: 1px solid rgba(255,255,255,.06); border-radius: 16px; padding: 20px; }
+      .login-wrap h1 { margin-top: 0; }
+      .field { display: grid; gap: 6px; margin-bottom: 12px; }
+      .field input { background: var(--panel); color: var(--text); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 12px 14px; }
+      .error { color: #ff8b94; min-height: 18px; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="login-wrap">
+      <div class="brand" style="justify-content:center; margin-bottom:8px;">
+        <span class="logo" aria-hidden="true">🎓</span>
+        <h1>Khadi's Classroom</h1>
+      </div>
+      <p class="hint">First time? Use the Bootstrap tab to create the first admin.</p>
+      <div style="display:flex; gap:10px; margin-bottom:10px;">
+        <button class="btn primary" id="tabLogin">Login</button>
+        <button class="btn" id="tabBootstrap" style="background:linear-gradient(135deg,#ffbd2e,#ff7a88)">Bootstrap</button>
+      </div>
+      <div id="paneLogin">
+        <div class="field">
+          <label>Email</label>
+          <input id="loginEmail" type="email" placeholder="admin@example.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" />
+        </div>
+        <div class="error" id="loginError"></div>
+        <button class="btn primary" id="loginBtn">Login</button>
+      </div>
+
+      <div id="paneBootstrap" style="display:none;">
+        <div class="field">
+          <label>Email</label>
+          <input id="bootEmail" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="bootPassword" type="password" placeholder="Choose a password" />
+        </div>
+        <div class="error" id="bootError"></div>
+        <button class="btn" id="bootBtn" style="background:linear-gradient(135deg,#ffbd2e,#ff7a88)">Bootstrap</button>
+      </div>
+    </div>
+
+    <script>
+      const API = ''
+      const tabLogin = document.getElementById('tabLogin')
+      const tabBootstrap = document.getElementById('tabBootstrap')
+      const paneLogin = document.getElementById('paneLogin')
+      const paneBootstrap = document.getElementById('paneBootstrap')
+      tabLogin.onclick = () => { paneLogin.style.display = ''; paneBootstrap.style.display = 'none' }
+      tabBootstrap.onclick = () => { paneLogin.style.display = 'none'; paneBootstrap.style.display = '' }
+
+      document.getElementById('loginBtn').onclick = async () => {
+        const email = document.getElementById('loginEmail').value.trim()
+        const password = document.getElementById('loginPassword').value
+        const err = document.getElementById('loginError')
+        err.textContent = ''
+        try {
+          const res = await fetch(API + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.error || 'Login failed')
+          localStorage.setItem('kc:token', data.token)
+          location.href = 'index.html'
+        } catch (e) { err.textContent = e.message }
+      }
+
+      document.getElementById('bootBtn').onclick = async () => {
+        const email = document.getElementById('bootEmail').value.trim()
+        const password = document.getElementById('bootPassword').value
+        const err = document.getElementById('bootError')
+        err.textContent = ''
+        try {
+          const res = await fetch(API + '/api/bootstrap/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.error || 'Bootstrap failed')
+          localStorage.setItem('kc:token', data.token)
+          location.href = 'index.html'
+        } catch (e) { err.textContent = e.message }
+      }
+    </script>
+  </body>
+  </html>
+
+

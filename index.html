@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Khadi's Classroom</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">🎓</span>
+        <h1>Khadi's Classroom</h1>
+      </div>
+      <div>
+        <a href="login.html" class="btn" id="loginLink" style="background:linear-gradient(135deg,#aab0d6,#d3d7ff); color:#0b0f2a;">Login</a>
+        <button class="btn" id="logoutBtn" style="display:none;background:linear-gradient(135deg,#ff8b94,#ffd3b6)">Logout</button>
+      </div>
+      <div class="totals">
+        <div class="total-card">
+          <span class="label">Students</span>
+          <span id="totalStudents" class="value">0</span>
+        </div>
+        <div class="total-card">
+          <span class="label">Total Points</span>
+          <span id="totalPoints" class="value">0</span>
+        </div>
+        <div class="total-card">
+          <span class="label">Rewards</span>
+          <span id="totalRewards" class="value">0</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="controls">
+        <form id="addStudentForm" class="add-student" autocomplete="off">
+          <input id="studentName" type="text" placeholder="Add a student name" required />
+          <button type="submit" class="btn primary">Add Student</button>
+        </form>
+        <div class="hint">Tip: Click +10 or -10 to quickly adjust points.</div>
+      </section>
+
+      <section id="studentsSection" class="students-section">
+        <div id="studentsList" class="students-list" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="studentCardTemplate">
+      <div class="student-card" data-id="">
+        <div class="card-top">
+          <div class="avatar" aria-hidden="true"></div>
+          <div class="identity">
+            <div class="name">Student</div>
+            <div class="meta">
+              <span class="points"><strong>0</strong> pts</span>
+              <span class="rewards" title="Rewards earned">🏆 0</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn sm danger" data-action="dec-10">-10</button>
+            <button class="btn sm danger" data-action="dec-1">-1</button>
+            <button class="btn sm success" data-action="inc-1">+1</button>
+            <button class="btn sm success" data-action="inc-10">+10</button>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+          </div>
+          <div class="progress-text">0 / 1000</div>
+        </div>
+        <canvas class="sparkline" width="400" height="64" aria-label="Points history chart"></canvas>
+      </div>
+    </template>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="rewardModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
+      <div class="modal-content">
+        <button class="modal-close" id="closeModal" aria-label="Close">✖</button>
+        <div class="modal-body">
+          <div class="confetti" id="confetti"></div>
+          <h2 id="rewardTitle">Reward Unlocked! 🎉</h2>
+          <p id="rewardMessage">Amazing job!</p>
+          <button id="modalOk" class="btn primary">Awesome!</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+  </html>
+
+

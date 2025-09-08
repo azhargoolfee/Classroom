@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: khadis-classroom
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_PATH
+        value: /var/data/khadi.db
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+
+
