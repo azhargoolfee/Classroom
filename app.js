@@ -126,6 +126,12 @@
         } else if (action.startsWith('dec')) {
           const delta = action === 'dec-10' ? -10 : -1
           await adjustPoints(s.id, delta)
+        } else if (action === 'delete') {
+          const sure = confirm(`Remove ${s.name}? This cannot be undone.`)
+          if (!sure) return
+          await removeStudent(s.id)
+          showToast(`Removed ${s.name}`)
+          await render()
         }
       })
 
@@ -192,6 +198,16 @@
     render()
   }
 
+  async function removeStudent(studentId) {
+    if (isAuthed()) {
+      await api(`/api/students/${studentId}`, { method: 'DELETE' })
+      return
+    }
+    const students = await loadStudents()
+    const remaining = students.filter((s) => s.id !== studentId)
+    await saveStudents(remaining)
+  }
+
   function drawSparkline(canvas, history) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -253,6 +269,7 @@
       showToast('Logged out')
       render()
       syncAuthUI()
+      location.href = 'login.html'
     })
   }
 
