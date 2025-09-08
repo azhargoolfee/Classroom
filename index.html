@@ -62,10 +62,12 @@
             </div>
           </div>
           <div class="actions">
-            <button class="btn sm danger" data-action="dec-10">-10</button>
+            <button class="btn sm danger" data-action="dec-5">-5</button>
+            <button class="btn sm danger" data-action="dec-2">-2</button>
             <button class="btn sm danger" data-action="dec-1">-1</button>
             <button class="btn sm success" data-action="inc-1">+1</button>
-            <button class="btn sm success" data-action="inc-10">+10</button>
+            <button class="btn sm success" data-action="inc-2">+2</button>
+            <button class="btn sm success" data-action="inc-5">+5</button>
           </div>
         </div>
         <div class="progress-wrap">
@@ -88,6 +90,33 @@
           <h2 id="rewardTitle">Reward Unlocked! 🎉</h2>
           <p id="rewardMessage">Amazing job!</p>
           <button id="modalOk" class="btn primary">Awesome!</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="reasonModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="reasonTitle">
+      <div class="modal-content">
+        <button class="modal-close" id="closeReasonModal" aria-label="Close">✖</button>
+        <div class="modal-body">
+          <h2 id="reasonTitle">Reason for Point Change</h2>
+          <div class="field">
+            <label for="reasonInput">Why are you changing points?</label>
+            <input id="reasonInput" type="text" placeholder="e.g., Completed homework, Good behavior, etc." />
+          </div>
+          <div class="modal-actions">
+            <button id="reasonCancel" class="btn">Cancel</button>
+            <button id="reasonConfirm" class="btn primary">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="historyModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <div class="modal-content">
+        <button class="modal-close" id="closeHistoryModal" aria-label="Close">✖</button>
+        <div class="modal-body">
+          <h2 id="historyTitle">Point History</h2>
+          <div id="historyList" class="history-list"></div>
         </div>
       </div>
     </div>

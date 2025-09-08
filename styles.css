@@ -158,6 +158,23 @@ body {
 .modal-body p { color: var(--muted); }
 .confetti { height: 10px; }
 
+.field { display: grid; gap: 6px; margin-bottom: 12px; }
+.field input { background: var(--panel); color: var(--text); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 12px 14px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+.history-list { max-height: 400px; overflow-y: auto; }
+.history-item { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 8px 0; 
+  border-bottom: 1px solid rgba(255,255,255,.06); 
+}
+.history-item:last-child { border-bottom: none; }
+.history-points { font-weight: 600; }
+.history-reason { color: var(--muted); font-size: 14px; }
+.history-time { color: var(--muted); font-size: 12px; }
+
 @media (max-width: 640px) {
   .controls { flex-direction: column; align-items: stretch; }
   .add-student { width: 100%; }

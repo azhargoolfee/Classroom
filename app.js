@@ -24,6 +24,18 @@
   const loginLink = document.getElementById('loginLink')
   const logoutBtn = document.getElementById('logoutBtn')
 
+  const reasonModal = document.getElementById('reasonModal')
+  const reasonInput = document.getElementById('reasonInput')
+  const reasonCancel = document.getElementById('reasonCancel')
+  const reasonConfirm = document.getElementById('reasonConfirm')
+  const closeReasonModal = document.getElementById('closeReasonModal')
+
+  const historyModal = document.getElementById('historyModal')
+  const historyList = document.getElementById('historyList')
+  const closeHistoryModal = document.getElementById('closeHistoryModal')
+
+  let pendingAdjustment = null
+
   const uid = () => Math.random().toString(36).slice(2, 10)
 
   function getToken() {
@@ -93,6 +105,54 @@
     rewardModal.classList.add('hidden')
   }
 
+  function showReasonModal(studentId, delta) {
+    pendingAdjustment = { studentId, delta }
+    reasonInput.value = ''
+    reasonModal.classList.remove('hidden')
+    reasonInput.focus()
+  }
+
+  function hideReasonModal() {
+    reasonModal.classList.add('hidden')
+    pendingAdjustment = null
+  }
+
+  function showHistoryModal(student) {
+    historyList.innerHTML = ''
+    const history = student.history || []
+    
+    if (history.length === 0) {
+      historyList.innerHTML = '<p style="text-align: center; color: var(--muted);">No history yet</p>'
+    } else {
+      history.forEach((entry, index) => {
+        const item = document.createElement('div')
+        item.className = 'history-item'
+        
+        const prevPoints = index > 0 ? history[index - 1].points : 0
+        const change = entry.points - prevPoints
+        const changeText = change > 0 ? `+${change}` : change < 0 ? `${change}` : '0'
+        
+        item.innerHTML = `
+          <div>
+            <div class="history-points">${entry.points} pts</div>
+            <div class="history-reason">${entry.reason || 'No reason given'}</div>
+          </div>
+          <div>
+            <div class="history-points">${changeText}</div>
+            <div class="history-time">${new Date(entry.t).toLocaleString()}</div>
+          </div>
+        `
+        historyList.appendChild(item)
+      })
+    }
+    
+    historyModal.classList.remove('hidden')
+  }
+
+  function hideHistoryModal() {
+    historyModal.classList.add('hidden')
+  }
+
   async function render() {
     const students = await loadStudents()
     // Totals
@@ -120,12 +180,13 @@
         if (!(btn instanceof HTMLElement)) return
         const action = btn.dataset.action
         if (!action) return
+        
         if (action.startsWith('inc')) {
-          const delta = action === 'inc-10' ? 10 : 1
-          await adjustPoints(s.id, delta)
+          const delta = action === 'inc-5' ? 5 : action === 'inc-2' ? 2 : 1
+          showReasonModal(s.id, delta)
         } else if (action.startsWith('dec')) {
-          const delta = action === 'dec-10' ? -10 : -1
-          await adjustPoints(s.id, delta)
+          const delta = action === 'dec-5' ? -5 : action === 'dec-2' ? -2 : -1
+          showReasonModal(s.id, delta)
         } else if (action === 'delete') {
           const sure = confirm(`Remove ${s.name}? This cannot be undone.`)
           if (!sure) return
@@ -134,6 +195,10 @@
           await render()
         }
       })
+
+      // Add click handler for sparkline to show history
+      const canvas = node.querySelector('canvas.sparkline')
+      canvas.addEventListener('click', () => showHistoryModal(s))
 
       studentsList.appendChild(node)
     }
@@ -160,9 +225,9 @@
     showToast(`Added ${student.name}`)
   }
 
-  async function adjustPoints(studentId, delta) {
+  async function adjustPoints(studentId, delta, reason = 'Point adjustment') {
     if (isAuthed()) {
-      const updated = await api(`/api/students/${studentId}/adjust`, { method: 'POST', body: JSON.stringify({ delta }) })
+      const updated = await api(`/api/students/${studentId}/adjust`, { method: 'POST', body: JSON.stringify({ delta, reason }) })
       if (updated && updated.rewards) {
         const beforePct = (updated.points - delta) % REWARD_THRESHOLD
         const afterPct = updated.points % REWARD_THRESHOLD
@@ -192,7 +257,7 @@
     }
 
     s.points = after
-    s.history = (s.history || []).concat({ t: Date.now(), points: s.points % REWARD_THRESHOLD })
+    s.history = (s.history || []).concat({ t: Date.now(), points: s.points % REWARD_THRESHOLD, reason })
     students[idx] = s
     await saveStudents(students)
     render()
@@ -263,6 +328,30 @@
     if (e.target === rewardModal) hideRewardModal()
   })
 
+  reasonConfirm.addEventListener('click', async () => {
+    if (!pendingAdjustment) return
+    const reason = reasonInput.value.trim() || 'Point adjustment'
+    hideReasonModal()
+    await adjustPoints(pendingAdjustment.studentId, pendingAdjustment.delta, reason)
+  })
+
+  reasonCancel.addEventListener('click', hideReasonModal)
+  closeReasonModal.addEventListener('click', hideReasonModal)
+  reasonModal.addEventListener('click', (e) => {
+    if (e.target === reasonModal) hideReasonModal()
+  })
+
+  reasonInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      reasonConfirm.click()
+    }
+  })
+
+  closeHistoryModal.addEventListener('click', hideHistoryModal)
+  historyModal.addEventListener('click', (e) => {
+    if (e.target === historyModal) hideHistoryModal()
+  })
+
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       localStorage.removeItem('kc:token')
@@ -281,7 +370,7 @@
       { name: 'Bilal' },
       { name: 'Zara' },
     ]
-    const seeded = seed.map((s) => ({ id: uid(), name: s.name, points: 0, rewards: 0, history: [{ t: Date.now(), points: 0 }] }))
+    const seeded = seed.map((s) => ({ id: uid(), name: s.name, points: 0, rewards: 0, history: [{ t: Date.now(), points: 0, reason: 'Student created' }] }))
     saveStudents(seeded)
   })
 

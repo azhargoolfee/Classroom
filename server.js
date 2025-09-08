@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS history (
   student_id INTEGER NOT NULL,
   t INTEGER NOT NULL,
   points INTEGER NOT NULL,
+  reason TEXT,
   FOREIGN KEY(student_id) REFERENCES students(id)
 );
 `)
@@ -94,7 +95,7 @@ app.get('/api/students', auth, (req, res) => {
   const uid = req.user.uid
   const students = db.prepare('SELECT * FROM students WHERE owner_id = ? ORDER BY id DESC').all(uid)
   const withHistory = students.map((s) => {
-    const history = db.prepare('SELECT t, points FROM history WHERE student_id = ? ORDER BY t ASC LIMIT 64').all(s.id)
+    const history = db.prepare('SELECT t, points, reason FROM history WHERE student_id = ? ORDER BY t ASC LIMIT 64').all(s.id)
     return { ...s, history }
   })
   res.json(withHistory)
@@ -106,9 +107,9 @@ app.post('/api/students', auth, (req, res) => {
   if (!name) return res.status(400).json({ error: 'Name required' })
   const info = db.prepare('INSERT INTO students (owner_id, name, points, rewards) VALUES (?, ?, 0, 0)').run(uid, name)
   const studentId = info.lastInsertRowid
-  db.prepare('INSERT INTO history (student_id, t, points) VALUES (?, ?, ?)').run(studentId, Date.now(), 0)
+  db.prepare('INSERT INTO history (student_id, t, points, reason) VALUES (?, ?, ?, ?)').run(studentId, Date.now(), 0, 'Student created')
   const student = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId)
-  res.status(201).json({ ...student, history: [{ t: Date.now(), points: 0 }] })
+  res.status(201).json({ ...student, history: [{ t: Date.now(), points: 0, reason: 'Student created' }] })
 })
 
 app.delete('/api/students/:id', auth, (req, res) => {
@@ -125,7 +126,7 @@ app.post('/api/students/:id/adjust', auth, (req, res) => {
   const REWARD_THRESHOLD = 1000
   const uid = req.user.uid
   const id = Number(req.params.id)
-  const { delta } = req.body || {}
+  const { delta, reason } = req.body || {}
   if (!Number.isInteger(delta) || Math.abs(delta) > 100000) {
     return res.status(400).json({ error: 'Invalid delta' })
   }
@@ -145,9 +146,9 @@ app.post('/api/students/:id/adjust', auth, (req, res) => {
   }
 
   db.prepare('UPDATE students SET points = ?, rewards = ? WHERE id = ?').run(after, rewards, id)
-  db.prepare('INSERT INTO history (student_id, t, points) VALUES (?, ?, ?)').run(id, Date.now(), after % REWARD_THRESHOLD)
+  db.prepare('INSERT INTO history (student_id, t, points, reason) VALUES (?, ?, ?, ?)').run(id, Date.now(), after % REWARD_THRESHOLD, reason || 'Point adjustment')
   const updated = db.prepare('SELECT * FROM students WHERE id = ?').get(id)
-  const history = db.prepare('SELECT t, points FROM history WHERE student_id = ? ORDER BY t ASC LIMIT 64').all(id)
+  const history = db.prepare('SELECT t, points, reason FROM history WHERE student_id = ? ORDER BY t ASC LIMIT 64').all(id)
   res.json({ ...updated, history })
 })
 
