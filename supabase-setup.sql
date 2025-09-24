@@ -1,11 +1,8 @@
 -- Supabase setup for Khadi's Classroom
 -- Run this in Supabase SQL Editor
 
--- Enable Row Level Security
-ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
-
--- Create users table
-CREATE TABLE IF NOT EXISTS users (
+-- Create app_users table (to avoid conflict with auth.users)
+CREATE TABLE IF NOT EXISTS app_users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -15,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create students table
 CREATE TABLE IF NOT EXISTS students (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   points INTEGER NOT NULL DEFAULT 0,
   rewards INTEGER NOT NULL DEFAULT 0,
@@ -33,29 +30,32 @@ CREATE TABLE IF NOT EXISTS history (
 );
 
 -- Enable Row Level Security
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE history ENABLE ROW LEVEL SECURITY;
 
--- Create policies for users table
-CREATE POLICY "Users can view their own data" ON users
-  FOR SELECT USING (auth.uid() = id);
+-- Create policies for app_users table
+CREATE POLICY "Users can view their own data" ON app_users
+  FOR SELECT USING (auth.uid()::text = id::text);
 
-CREATE POLICY "Users can update their own data" ON users
-  FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update their own data" ON app_users
+  FOR UPDATE USING (auth.uid()::text = id::text);
+
+CREATE POLICY "Users can insert their own data" ON app_users
+  FOR INSERT WITH CHECK (auth.uid()::text = id::text);
 
 -- Create policies for students table
 CREATE POLICY "Users can view their own students" ON students
-  FOR SELECT USING (auth.uid() = owner_id);
+  FOR SELECT USING (auth.uid()::text = owner_id::text);
 
 CREATE POLICY "Users can insert their own students" ON students
-  FOR INSERT WITH CHECK (auth.uid() = owner_id);
+  FOR INSERT WITH CHECK (auth.uid()::text = owner_id::text);
 
 CREATE POLICY "Users can update their own students" ON students
-  FOR UPDATE USING (auth.uid() = owner_id);
+  FOR UPDATE USING (auth.uid()::text = owner_id::text);
 
 CREATE POLICY "Users can delete their own students" ON students
-  FOR DELETE USING (auth.uid() = owner_id);
+  FOR DELETE USING (auth.uid()::text = owner_id::text);
 
 -- Create policies for history table
 CREATE POLICY "Users can view history of their students" ON history
@@ -63,7 +63,7 @@ CREATE POLICY "Users can view history of their students" ON history
     EXISTS (
       SELECT 1 FROM students 
       WHERE students.id = history.student_id 
-      AND students.owner_id = auth.uid()
+      AND students.owner_id::text = auth.uid()::text
     )
   );
 
@@ -72,7 +72,7 @@ CREATE POLICY "Users can insert history for their students" ON history
     EXISTS (
       SELECT 1 FROM students 
       WHERE students.id = history.student_id 
-      AND students.owner_id = auth.uid()
+      AND students.owner_id::text = auth.uid()::text
     )
   );
 
@@ -81,7 +81,7 @@ CREATE POLICY "Users can delete history of their students" ON history
     EXISTS (
       SELECT 1 FROM students 
       WHERE students.id = history.student_id 
-      AND students.owner_id = auth.uid()
+      AND students.owner_id::text = auth.uid()::text
     )
   );
 

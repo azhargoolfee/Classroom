@@ -53,14 +53,14 @@ app.post('/api/bootstrap/register', async (req, res) => {
   try {
     // Check if any users exist
     const { count } = await supabase
-      .from('users')
+      .from('app_users')
       .select('*', { count: 'exact', head: true })
     
     if (count > 0) return res.status(400).json({ error: 'Already initialized' })
     
     const password_hash = bcrypt.hashSync(password, 10)
     const { data, error } = await supabase
-      .from('users')
+      .from('app_users')
       .insert([{ email, password_hash }])
       .select()
       .single()
@@ -81,7 +81,7 @@ app.post('/api/login', async (req, res) => {
   
   try {
     const { data: user, error } = await supabase
-      .from('users')
+      .from('app_users')
       .select('*')
       .eq('email', email)
       .single()
