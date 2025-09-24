@@ -14,6 +14,9 @@ const PORT = process.env.PORT || 3000
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'khadi.db')
 
+console.log('Database path:', DB_PATH)
+console.log('Environment:', process.env.NODE_ENV || 'development')
+
 const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 
@@ -43,6 +46,11 @@ CREATE TABLE IF NOT EXISTS history (
   FOREIGN KEY(student_id) REFERENCES students(id)
 );
 `)
+
+// Check database status
+const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count
+const studentCount = db.prepare('SELECT COUNT(*) as count FROM students').get().count
+console.log(`Database initialized: ${userCount} users, ${studentCount} students`)
 
 const app = express()
 app.use(cors())
