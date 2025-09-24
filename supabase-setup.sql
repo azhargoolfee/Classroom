@@ -41,6 +41,13 @@ CREATE POLICY "Users can view their own data" ON app_users
 CREATE POLICY "Users can update their own data" ON app_users
   FOR UPDATE USING (auth.uid()::text = id::text);
 
+-- Allow first user registration (when no users exist)
+CREATE POLICY "Allow first user registration" ON app_users
+  FOR INSERT WITH CHECK (
+    NOT EXISTS (SELECT 1 FROM app_users)
+  );
+
+-- Allow authenticated users to insert their own data
 CREATE POLICY "Users can insert their own data" ON app_users
   FOR INSERT WITH CHECK (auth.uid()::text = id::text);
 
