@@ -59,7 +59,11 @@ app.post('/api/bootstrap/register', async (req, res) => {
     if (count > 0) return res.status(400).json({ error: 'Already initialized' })
     
     const password_hash = bcrypt.hashSync(password, 10)
-    const { data, error } = await supabase
+    
+    // Use service role key for bootstrap registration to bypass RLS
+    const serviceSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey)
+    
+    const { data, error } = await serviceSupabase
       .from('app_users')
       .insert([{ email, password_hash }])
       .select()
@@ -80,7 +84,10 @@ app.post('/api/login', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
   
   try {
-    const { data: user, error } = await supabase
+    // Use service role key for login to bypass RLS
+    const serviceSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey)
+    
+    const { data: user, error } = await serviceSupabase
       .from('app_users')
       .select('*')
       .eq('email', email)
