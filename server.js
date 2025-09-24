@@ -111,7 +111,10 @@ app.get('/api/students', auth, async (req, res) => {
   const uid = req.user.uid
   
   try {
-    const { data: students, error } = await supabase
+    // Use service role key to bypass RLS
+    const serviceSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey)
+    
+    const { data: students, error } = await serviceSupabase
       .from('students')
       .select('*')
       .eq('owner_id', uid)
@@ -120,7 +123,7 @@ app.get('/api/students', auth, async (req, res) => {
     if (error) throw error
     
     const withHistory = await Promise.all(students.map(async (s) => {
-      const { data: history } = await supabase
+      const { data: history } = await serviceSupabase
         .from('history')
         .select('t, points, reason')
         .eq('student_id', s.id)
@@ -143,7 +146,10 @@ app.post('/api/students', auth, async (req, res) => {
   if (!name) return res.status(400).json({ error: 'Name required' })
   
   try {
-    const { data: student, error } = await supabase
+    // Use service role key to bypass RLS
+    const serviceSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey)
+    
+    const { data: student, error } = await serviceSupabase
       .from('students')
       .insert([{ owner_id: uid, name, points: 0, rewards: 0 }])
       .select()
@@ -152,7 +158,7 @@ app.post('/api/students', auth, async (req, res) => {
     if (error) throw error
     
     // Add initial history entry
-    await supabase
+    await serviceSupabase
       .from('history')
       .insert([{ student_id: student.id, t: Date.now(), points: 0, reason: 'Student created' }])
     
@@ -168,8 +174,11 @@ app.delete('/api/students/:id', auth, async (req, res) => {
   const id = req.params.id
   
   try {
+    // Use service role key to bypass RLS
+    const serviceSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey)
+    
     // Check if student belongs to user
-    const { data: student, error: checkError } = await supabase
+    const { data: student, error: checkError } = await serviceSupabase
       .from('students')
       .select('id')
       .eq('id', id)
@@ -179,7 +188,7 @@ app.delete('/api/students/:id', auth, async (req, res) => {
     if (checkError || !student) return res.status(404).json({ error: 'Not found' })
     
     // Delete student (history will be deleted automatically due to CASCADE)
-    const { error } = await supabase
+    const { error } = await serviceSupabase
       .from('students')
       .delete()
       .eq('id', id)
@@ -204,8 +213,11 @@ app.post('/api/students/:id/adjust', auth, async (req, res) => {
   }
   
   try {
+    // Use service role key to bypass RLS
+    const serviceSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey)
+    
     // Get current student data
-    const { data: student, error: fetchError } = await supabase
+    const { data: student, error: fetchError } = await serviceSupabase
       .from('students')
       .select('*')
       .eq('id', id)
@@ -227,7 +239,7 @@ app.post('/api/students/:id/adjust', auth, async (req, res) => {
     }
     
     // Update student
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await serviceSupabase
       .from('students')
       .update({ points: after, rewards })
       .eq('id', id)
@@ -237,12 +249,12 @@ app.post('/api/students/:id/adjust', auth, async (req, res) => {
     if (updateError) throw updateError
     
     // Add history entry
-    await supabase
+    await serviceSupabase
       .from('history')
       .insert([{ student_id: id, t: Date.now(), points: after % REWARD_THRESHOLD, reason: reason || 'Point adjustment' }])
     
     // Get updated history
-    const { data: history } = await supabase
+    const { data: history } = await serviceSupabase
       .from('history')
       .select('t, points, reason')
       .eq('student_id', id)
