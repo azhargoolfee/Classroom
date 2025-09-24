@@ -65,23 +65,19 @@
   }
 
   async function loadStudents() {
-    if (!isAuthed()) {
-      // Fallback to local storage for unauthenticated preview
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        if (!raw) return []
-        const parsed = JSON.parse(raw)
-        return Array.isArray(parsed) ? parsed : []
-      } catch (e) {
-        console.error('Failed to load students', e)
-        return []
-      }
+    // Always use localStorage for free tier compatibility
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (e) {
+      console.error('Failed to load students', e)
+      return []
     }
-    return await api('/api/students')
   }
 
   async function saveStudents(students) {
-    // Only used for unauthenticated preview mode
     localStorage.setItem(STORAGE_KEY, JSON.stringify(students))
   }
 
@@ -229,11 +225,7 @@
   }
 
   async function addStudent(name) {
-    if (isAuthed()) {
-      await api('/api/students', { method: 'POST', body: JSON.stringify({ name }) })
-      showToast(`Added ${name}`)
-      return render()
-    }
+    // Always use localStorage for free tier compatibility
     const students = await loadStudents()
     const exists = students.some((s) => s.name.toLowerCase() === name.toLowerCase())
     const student = {
@@ -251,23 +243,8 @@
 
   async function adjustPoints(studentId, delta, reason = 'Point adjustment') {
     console.log('adjustPoints called:', { studentId, delta, reason, isAuthed: isAuthed() })
-    if (isAuthed()) {
-      try {
-        const updated = await api(`/api/students/${studentId}/adjust`, { method: 'POST', body: JSON.stringify({ delta, reason }) })
-        console.log('API response:', updated)
-        if (updated && updated.rewards) {
-          const beforePct = (updated.points - delta) % REWARD_THRESHOLD
-          const afterPct = updated.points % REWARD_THRESHOLD
-          if (afterPct < beforePct && delta > 0) {
-            showRewardModal(updated)
-          }
-        }
-        return render()
-      } catch (error) {
-        console.error('API call failed:', error)
-        throw error
-      }
-    }
+    
+    // Always use localStorage for free tier compatibility
     const students = await loadStudents()
     const idx = students.findIndex((s) => s.id === studentId)
     if (idx === -1) {
@@ -299,10 +276,7 @@
   }
 
   async function removeStudent(studentId) {
-    if (isAuthed()) {
-      await api(`/api/students/${studentId}`, { method: 'DELETE' })
-      return
-    }
+    // Always use localStorage for free tier compatibility
     const students = await loadStudents()
     const remaining = students.filter((s) => s.id !== studentId)
     await saveStudents(remaining)
