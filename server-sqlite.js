@@ -27,7 +27,7 @@ app.use(cors())
 app.use(express.json())
 
 // Serve static frontend
-app.use(express.static('.'))
+app.use(express.static(__dirname))
 
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
@@ -130,123 +130,55 @@ app.get('/api/students', auth, async (req, res) => {
   }
 })
 
-app.post('/api/students', auth, async (req, res) => {
+app.post('/api/students', auth, (req, res) => {
   const uid = req.user.uid
   const { name } = req.body || {}
   if (!name) return res.status(400).json({ error: 'Name required' })
-  
-  try {
-    const { data: student, error } = await supabase
-      .from('students')
-      .insert([{ owner_id: uid, name, points: 0, rewards: 0 }])
-      .select()
-      .single()
-    
-    if (error) throw error
-    
-    // Add initial history entry
-    await supabase
-      .from('history')
-      .insert([{ student_id: student.id, t: Date.now(), points: 0, reason: 'Student created' }])
-    
-    res.status(201).json({ ...student, history: [{ t: Date.now(), points: 0, reason: 'Student created' }] })
-  } catch (error) {
-    console.error('Create student error:', error)
-    res.status(500).json({ error: 'Failed to create student' })
-  }
+  const info = db.prepare('INSERT INTO students (owner_id, name, points, rewards) VALUES (?, ?, 0, 0)').run(uid, name)
+  const studentId = info.lastInsertRowid
+  db.prepare('INSERT INTO history (student_id, t, points, reason) VALUES (?, ?, ?, ?)').run(studentId, Date.now(), 0, 'Student created')
+  const student = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId)
+  res.status(201).json({ ...student, history: [{ t: Date.now(), points: 0, reason: 'Student created' }] })
 })
 
-app.delete('/api/students/:id', auth, async (req, res) => {
+app.delete('/api/students/:id', auth, (req, res) => {
   const uid = req.user.uid
-  const id = req.params.id
-  
-  try {
-    // Check if student belongs to user
-    const { data: student, error: checkError } = await supabase
-      .from('students')
-      .select('id')
-      .eq('id', id)
-      .eq('owner_id', uid)
-      .single()
-    
-    if (checkError || !student) return res.status(404).json({ error: 'Not found' })
-    
-    // Delete student (history will be deleted automatically due to CASCADE)
-    const { error } = await supabase
-      .from('students')
-      .delete()
-      .eq('id', id)
-    
-    if (error) throw error
-    
-    res.json({ ok: true })
-  } catch (error) {
-    console.error('Delete student error:', error)
-    res.status(500).json({ error: 'Failed to delete student' })
-  }
+  const id = Number(req.params.id)
+  const s = db.prepare('SELECT * FROM students WHERE id = ? AND owner_id = ?').get(id, uid)
+  if (!s) return res.status(404).json({ error: 'Not found' })
+  db.prepare('DELETE FROM history WHERE student_id = ?').run(id)
+  db.prepare('DELETE FROM students WHERE id = ?').run(id)
+  res.json({ ok: true })
 })
 
-app.post('/api/students/:id/adjust', auth, async (req, res) => {
+app.post('/api/students/:id/adjust', auth, (req, res) => {
   const REWARD_THRESHOLD = 10
   const uid = req.user.uid
-  const id = req.params.id
+  const id = Number(req.params.id)
   const { delta, reason } = req.body || {}
-  
   if (!Number.isInteger(delta) || Math.abs(delta) > 100000) {
     return res.status(400).json({ error: 'Invalid delta' })
   }
-  
-  try {
-    // Get current student data
-    const { data: student, error: fetchError } = await supabase
-      .from('students')
-      .select('*')
-      .eq('id', id)
-      .eq('owner_id', uid)
-      .single()
-    
-    if (fetchError || !student) return res.status(404).json({ error: 'Not found' })
-    
-    const before = student.points
-    let after = Math.max(0, before + delta)
-    
-    // Rewards calculation
-    let rewards = student.rewards
-    if (after >= REWARD_THRESHOLD && after > before) {
-      const beforeRewards = Math.floor(before / REWARD_THRESHOLD)
-      const afterRewards = Math.floor(after / REWARD_THRESHOLD)
-      const newlyEarned = afterRewards - beforeRewards
-      if (newlyEarned > 0) rewards += newlyEarned
-    }
-    
-    // Update student
-    const { data: updated, error: updateError } = await supabase
-      .from('students')
-      .update({ points: after, rewards })
-      .eq('id', id)
-      .select()
-      .single()
-    
-    if (updateError) throw updateError
-    
-    // Add history entry
-    await supabase
-      .from('history')
-      .insert([{ student_id: id, t: Date.now(), points: after % REWARD_THRESHOLD, reason: reason || 'Point adjustment' }])
-    
-    // Get updated history
-    const { data: history } = await supabase
-      .from('history')
-      .select('t, points, reason')
-      .eq('student_id', id)
-      .order('t', { ascending: true })
-      .limit(64)
-    
-    res.json({ ...updated, history: history || [] })
-  } catch (error) {
-    console.error('Adjust points error:', error)
-    res.status(500).json({ error: 'Failed to adjust points' })
+  const s = db.prepare('SELECT * FROM students WHERE id = ? AND owner_id = ?').get(id, uid)
+  if (!s) return res.status(404).json({ error: 'Not found' })
+
+  const before = s.points
+  let after = Math.max(0, before + delta)
+
+  // Rewards calculation
+  let rewards = s.rewards
+  if (after >= REWARD_THRESHOLD && after > before) {
+    const beforeRewards = Math.floor(before / REWARD_THRESHOLD)
+    const afterRewards = Math.floor(after / REWARD_THRESHOLD)
+    const newlyEarned = afterRewards - beforeRewards
+    if (newlyEarned > 0) rewards += newlyEarned
   }
+
+  db.prepare('UPDATE students SET points = ?, rewards = ? WHERE id = ?').run(after, rewards, id)
+  db.prepare('INSERT INTO history (student_id, t, points, reason) VALUES (?, ?, ?, ?)').run(id, Date.now(), after % REWARD_THRESHOLD, reason || 'Point adjustment')
+  const updated = db.prepare('SELECT * FROM students WHERE id = ?').get(id)
+  const history = db.prepare('SELECT t, points, reason FROM history WHERE student_id = ? ORDER BY t ASC LIMIT 64').all(id)
+  res.json({ ...updated, history })
 })
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
@@ -254,3 +186,5 @@ app.get('/api/health', (req, res) => res.json({ ok: true }))
 app.listen(PORT, () => {
   console.log(`Khadi's Classroom server running on http://localhost:${PORT}`)
 })
+
+

@@ -65,19 +65,23 @@
   }
 
   async function loadStudents() {
-    // Always use localStorage for free tier compatibility
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return []
-      const parsed = JSON.parse(raw)
-      return Array.isArray(parsed) ? parsed : []
-    } catch (e) {
-      console.error('Failed to load students', e)
-      return []
+    if (!isAuthed()) {
+      // Fallback to local storage for unauthenticated preview
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (!raw) return []
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed : []
+      } catch (e) {
+        console.error('Failed to load students', e)
+        return []
+      }
     }
+    return await api('/api/students')
   }
 
   async function saveStudents(students) {
+    // Only used for unauthenticated preview mode
     localStorage.setItem(STORAGE_KEY, JSON.stringify(students))
   }
 
@@ -225,7 +229,12 @@
   }
 
   async function addStudent(name) {
-    // Always use localStorage for free tier compatibility
+    if (isAuthed()) {
+      await api('/api/students', { method: 'POST', body: JSON.stringify({ name }) })
+      showToast(`Added ${name}`)
+      return render()
+    }
+    // Fallback to localStorage for unauthenticated preview
     const students = await loadStudents()
     const exists = students.some((s) => s.name.toLowerCase() === name.toLowerCase())
     const student = {
@@ -244,7 +253,25 @@
   async function adjustPoints(studentId, delta, reason = 'Point adjustment') {
     console.log('adjustPoints called:', { studentId, delta, reason, isAuthed: isAuthed() })
     
-    // Always use localStorage for free tier compatibility
+    if (isAuthed()) {
+      try {
+        const updated = await api(`/api/students/${studentId}/adjust`, { method: 'POST', body: JSON.stringify({ delta, reason }) })
+        console.log('API response:', updated)
+        if (updated && updated.rewards) {
+          const beforePct = (updated.points - delta) % REWARD_THRESHOLD
+          const afterPct = updated.points % REWARD_THRESHOLD
+          if (afterPct < beforePct && delta > 0) {
+            showRewardModal(updated)
+          }
+        }
+        return render()
+      } catch (error) {
+        console.error('API call failed:', error)
+        throw error
+      }
+    }
+    
+    // Fallback to localStorage for unauthenticated preview
     const students = await loadStudents()
     const idx = students.findIndex((s) => s.id === studentId)
     if (idx === -1) {
@@ -276,7 +303,11 @@
   }
 
   async function removeStudent(studentId) {
-    // Always use localStorage for free tier compatibility
+    if (isAuthed()) {
+      await api(`/api/students/${studentId}`, { method: 'DELETE' })
+      return
+    }
+    // Fallback to localStorage for unauthenticated preview
     const students = await loadStudents()
     const remaining = students.filter((s) => s.id !== studentId)
     await saveStudents(remaining)
